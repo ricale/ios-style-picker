@@ -11,6 +11,8 @@ ul {
   text-align: center;
   overflow: hidden;
   /* font-size: 24px; */
+
+  font-family: 'Apple SD Gothic Neo';
 }
 .select-wrap:before,
 .select-wrap:after {

@@ -8,7 +8,7 @@ import './DatePicker.css';
 
 const ONCHANGE_TIMEOUT_DELAY = 100;
 
-type DatePickerProps = {
+export type DatePickerProps = {
   onChange: (year: number, month: number, day: number) => void;
   fromDate?: Date;
   toDate?: Date;
@@ -22,7 +22,7 @@ type DatePickerStateRef = {
   monthSource: IosSelectorOptions['source'];
   daySource: IosSelectorOptions['source'];
   onChange: DatePickerProps['onChange'];
-  onChangeTimeout: number | null;
+  onChangeTimeout: NodeJS.Timeout | null;
 };
 function DatePicker({
   onChange,
