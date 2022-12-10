@@ -1,19 +1,13 @@
 import easing from './easing';
+import normalize from './normalize';
+import templates from './templates';
 
-type IosSelctorType = 'infinite' | 'normal';
-interface IosSelectorSourceItem {
+type IosSelctorVariant = 'infinite' | 'normal';
+export interface IosSelectorSourceItem {
   value: number;
   text: string;
 }
-interface IosSelectorOptions {
-  el: string;
-  type: IosSelctorType;
-  count: number;
-  sensitivity: number;
-  source: IosSelectorSourceItem[];
-  value: null | number;
-  onChange?: (selected: IosSelectorSourceItem) => void;
-}
+
 interface IosSelectorTouchData {
   startY: number;
   yArr: [number, number][];
@@ -21,49 +15,35 @@ interface IosSelectorTouchData {
 }
 type IosSelctorUserEvent = MouseEvent | TouchEvent;
 
-interface IosSelectorInputOptions {
-  el: IosSelectorOptions['el'];
-  type?: IosSelectorOptions['type'];
-  count?: IosSelectorOptions['count'];
-  sensitivity?: IosSelectorOptions['sensitivity'];
-  source: IosSelectorOptions['source'];
-  value?: IosSelectorOptions['value'];
-  onChange?: IosSelectorOptions['onChange'];
-}
-
-function isMouseEvent(evt: Event): evt is MouseEvent {
-  return evt.hasOwnProperty('clientY');
+export interface IosSelectorOptions {
+  variant?: IosSelctorVariant;
+  source: IosSelectorSourceItem[];
+  onChange?: (selected: IosSelectorSourceItem) => void;
+  count?: number;
+  sensitivity?: number;
+  value?: number;
 }
 
 class IosSelector {
-  private options: IosSelectorOptions;
-
-  private el: IosSelectorOptions['el'];
-  private type: IosSelectorOptions['type'];
-  private count: IosSelectorOptions['count'];
-  private sensitivity: IosSelectorOptions['sensitivity'];
-  private source: IosSelectorOptions['source'];
-  private value: IosSelectorOptions['value'];
-  private onChange: IosSelectorOptions['onChange'];
-
-  private halfCount: number;
-  private quarterCount: number;
-  private alpha: number;
-  private minV: number;
-
+  private variant: IosSelctorVariant;
+  private source: IosSelectorSourceItem[];
   private selected: { value: number; text: string };
 
+  private onChange?: (selected: IosSelectorSourceItem) => void;
+
+  private sensitivity: number;
+  private wheelCount: number;
   private exceedA: number;
   private moveT: number;
   private moving: boolean;
 
-  private elems: {
-    el: HTMLElement | null;
-    circleList: HTMLElement | null;
-    circleItems: NodeListOf<HTMLElement> | null;
-    highlight: HTMLElement | null;
+  private el: {
+    container: HTMLElement | null;
+    optionList: HTMLElement | null;
+    optionItems: NodeListOf<HTMLElement> | null;
+    // highlight: HTMLElement | null;
     highlightList: HTMLElement | null;
-    highListItems: NodeListOf<HTMLElement> | null;
+    highlightItems: NodeListOf<HTMLElement> | null;
   };
 
   private events: {
@@ -77,147 +57,125 @@ class IosSelector {
   private radius: number;
   private scroll: number;
 
-  constructor(options: IosSelectorInputOptions) {
-    const defaults: IosSelectorOptions = {
-      el: '',
-      type: 'infinite',
-      count: 20, // 4의 배수로 설정되어야 하는 링의 아이템 갯수
-      sensitivity: 0.8,
-      source: [],
-      value: null,
-    };
+  private touchData: IosSelectorTouchData = {
+    startY: 0,
+    yArr: [],
+    touchScroll: 0,
+  };
 
-    // 옵션 기본값과 입력받은 옵션을 하나의 객체로 결합
-    this.options = Object.assign({}, defaults, options);
-    this.options.count = this.options.count - (this.options.count % 4);
-
-    this.el = this.options.el;
-    this.type = this.options.type;
-    this.count = this.options.count;
-    this.sensitivity = this.options.sensitivity;
-    this.source = this.options.source;
-    this.value = this.options.value;
-
-    Object.assign(this, this.options);
-
-    this.halfCount = this.options.count / 2;
-    this.quarterCount = this.options.count / 4;
-    this.alpha = this.options.sensitivity * 10;
-    this.minV = Math.sqrt(1 / this.alpha);
-    // 기본값은 입력받은 source 의 첫번째 값
+  constructor(targetSelector: string, options: IosSelectorOptions) {
+    this.variant = options.variant ?? 'infinite';
+    this.source = options.source;
     this.selected = this.source[0];
+
+    const count = options.count ?? 20;
+    this.wheelCount = count - (count % 4); // 4의 배수여야 함
+    this.sensitivity = options.sensitivity ?? 8;
 
     this.exceedA = 10;
     this.moveT = 0;
     this.moving = false;
 
-    const el = document.querySelector<HTMLElement>(this.options.el);
-    if (!el) {
-      throw new Error(`element ${this.options.el} not exists`);
+    const container = document.querySelector<HTMLElement>(targetSelector);
+    if (!container) {
+      throw new Error(`element ${targetSelector} not exists`);
     }
-    this.elems = {
-      el,
-      circleList: null,
-      circleItems: null,
+    this.el = {
+      container,
+      optionList: null,
+      optionItems: null,
 
-      highlight: null,
+      // highlight: null,
       highlightList: null,
-      highListItems: null,
+      highlightItems: null,
     };
 
-    this.itemHeight = (el.offsetHeight * 3) / this.options.count;
-    this.itemAngle = 360 / this.options.count; // 아이템 간 각도 차이
+    this.itemHeight = (container.offsetHeight * 3) / count;
+    this.itemAngle = 360 / count; // 아이템 간 각도 차이
     this.radius = this.itemHeight / Math.tan((this.itemAngle * Math.PI) / 180); // 반지름
 
     this.scroll = 0;
-    this._create(this.options.source);
-
-    const touchData: IosSelectorTouchData = {
-      startY: 0,
-      yArr: [],
-      touchScroll: 0,
-    };
+    this._create(this.source);
 
     this.events = {
-      touchstart: this._createEventListener('touchstart', touchData),
-      touchmove: this._createEventListener('touchmove', touchData),
-      touchend: this._createEventListener('touchend', touchData),
+      touchstart: this._createEventListener('touchstart'),
+      touchmove: this._createEventListener('touchmove'),
+      touchend: this._createEventListener('touchend'),
     };
 
-    el.addEventListener('touchstart', this.events.touchstart);
+    container.addEventListener('touchstart', this.events.touchstart);
     document.addEventListener('mousedown', this.events.touchstart);
-    el.addEventListener('touchend', this.events.touchend);
+    container.addEventListener('touchend', this.events.touchend);
     document.addEventListener('mouseup', this.events.touchend);
+
     if (this.source.length) {
-      this.value = this.value !== null ? this.value : this.source[0].value;
-      this.select(this.value);
+      this.select(this.selected.value);
     }
   }
 
-  _createEventListener(
-    eventName: 'touchstart' | 'touchmove' | 'touchend',
-    touchData: IosSelectorTouchData
-  ) {
+  private _createEventListener(eventName: 'touchstart' | 'touchmove' | 'touchend') {
     return (evt: IosSelctorUserEvent) => {
-      if (!this.elems.el?.contains(evt.target as Node) && evt.target !== this.elems.el) {
+      if (
+        !this.el.container?.contains(evt.target as Node) &&
+        evt.target !== this.el.container
+      ) {
         return;
       }
       if (this.source.length === 0) {
         return;
       }
       evt.preventDefault();
-      this[`_${eventName}`](evt, touchData);
+      this[`_${eventName}`](evt);
     };
   }
 
-  _touchstart(evt: IosSelctorUserEvent, touchData: IosSelectorTouchData) {
-    if (!this.elems.el) {
-      return;
+  private _touchstart(evt: IosSelctorUserEvent) {
+    if (!this.el.container) {
+      throw new Error('container not exists');
     }
 
-    this.elems.el.addEventListener('touchmove', this.events.touchmove);
+    this.el.container.addEventListener('touchmove', this.events.touchmove);
     document.addEventListener('mousemove', this.events.touchmove);
 
     // const eventY = isMouseEvent(evt) ? evt.clientY : evt.touches[0].clientY;
     const eventY = (evt as MouseEvent).clientY ?? (evt as TouchEvent).touches[0].clientY;
-    touchData.startY = eventY;
-    touchData.yArr = [[eventY, new Date().getTime()]];
-    touchData.touchScroll = this.scroll;
+    this.touchData.startY = eventY;
+    this.touchData.yArr = [[eventY, new Date().getTime()]];
+    this.touchData.touchScroll = this.scroll;
     this._stop();
   }
 
-  _touchmove(evt: IosSelctorUserEvent, touchData: IosSelectorTouchData) {
+  private _touchmove(evt: IosSelctorUserEvent) {
     // const eventY = isMouseEvent(evt) ? evt.clientY : evt.touches[0].clientY;
     const eventY = (evt as MouseEvent).clientY ?? (evt as TouchEvent).touches[0].clientY;
-    touchData.yArr.push([eventY, new Date().getTime()]);
-    if (touchData.yArr.length > 5) {
-      touchData.yArr.unshift();
+    this.touchData.yArr.push([eventY, new Date().getTime()]);
+    if (this.touchData.yArr.length > 5) {
+      this.touchData.yArr.unshift();
     }
 
-    const scrollAdd = (touchData.startY - eventY) / this.itemHeight;
-    // const moveToScroll = scrollAdd + this.scroll;
+    const scrollAdd = (this.touchData.startY - eventY) / this.itemHeight;
     const baseMoveToControl = scrollAdd + this.scroll;
     const moveToScroll =
-      this.type === 'infinite'
-        ? this._normalizeScroll(baseMoveToControl)
+      this.variant === 'infinite'
+        ? normalize(baseMoveToControl, this.source.length)
         : baseMoveToControl < 0
         ? baseMoveToControl * 0.3 // 무한 스크롤이 아니면 스크롤이 좀 덜 되게 조정
         : baseMoveToControl > this.source.length
         ? this.source.length + (baseMoveToControl - this.source.length) * 0.3 // 무한 스크롤이 아니면 스크롤이 좀 덜 되게 조정
         : baseMoveToControl;
 
-    touchData.touchScroll = this._moveTo(moveToScroll);
+    this.touchData.touchScroll = this._moveTo(moveToScroll);
   }
 
-  _getInitV(touchData: IosSelectorTouchData) {
-    if (touchData.yArr.length === 1) {
+  private _getInitV() {
+    if (this.touchData.yArr.length === 1) {
       return 0;
     }
 
-    const startTime = touchData.yArr[touchData.yArr.length - 2][1];
-    const endTime = touchData.yArr[touchData.yArr.length - 1][1];
-    const startY = touchData.yArr[touchData.yArr.length - 2][0];
-    const endY = touchData.yArr[touchData.yArr.length - 1][0];
+    const startTime = this.touchData.yArr[this.touchData.yArr.length - 2][1];
+    const endTime = this.touchData.yArr[this.touchData.yArr.length - 1][1];
+    const startY = this.touchData.yArr[this.touchData.yArr.length - 2][0];
+    const endY = this.touchData.yArr[this.touchData.yArr.length - 1][0];
 
     const v = (((startY - endY) / this.itemHeight) * 1000) / (endTime - startTime);
     const sign = v > 0 ? 1 : -1;
@@ -225,49 +183,35 @@ class IosSelector {
     return Math.abs(v) > 30 ? 30 * sign : v;
   }
 
-  _touchend(_evt: IosSelctorUserEvent, touchData: IosSelectorTouchData) {
-    if (!this.elems.el) {
-      return;
+  private _touchend(_evt: IosSelctorUserEvent) {
+    if (!this.el.container) {
+      throw new Error('container not exists');
     }
 
-    this.elems.el.removeEventListener('touchmove', this.events.touchmove);
+    this.el.container.removeEventListener('touchmove', this.events.touchmove);
     document.removeEventListener('mousemove', this.events.touchmove);
 
-    const v = this._getInitV(touchData);
+    const v = this._getInitV(/*touchData*/);
 
-    this.scroll = touchData.touchScroll;
+    this.scroll = this.touchData.touchScroll;
     this._animateMoveByInitV(v);
   }
 
-  _create(source: IosSelectorSourceItem[]) {
-    if (!source.length || !this.elems.el) {
-      return;
+  private _create(source: IosSelectorSourceItem[]) {
+    if (!source.length) {
+      throw new Error('source not exists');
     }
-
-    const template = `
-      <div class="select-wrap">
-        <ul
-          class="select-options"
-          style="transform: translate3d(0, 0, ${-this.radius}px) rotateX(0deg);"
-        >
-          {{circleListHtml}}
-          <!-- <li class="select-option">a0</li> -->
-        </ul>
-        <div class="highlight">
-          <ul class="highlight-list">
-            <!-- <li class="highlight-item"></li> -->
-            {{highListHtml}}
-          </ul>
-        </div>
-      </div>`;
+    if (!this.el.container) {
+      throw new Error('container not exists');
+    }
 
     // 무한 스크롤을 위해 데이터 복제 처리
     // 링이 돌아갈 때 데이터가 끊임없이 보여야 한다.
-    if (this.options.type === 'infinite') {
+    if (this.variant === 'infinite') {
       let concatSource: IosSelectorSourceItem[] = [...source];
-      // 링의 halfCount 보다 데이터 갯수가 적으면, 뒤에 그대로 붙인다.
+      // 링의 this.wheelCount / 2 보다 데이터 갯수가 적으면, 뒤에 그대로 붙인다.
       // 왜 반절이냐, 사용자에게는 반절밖에 안보이기 때문
-      while (concatSource.length < this.halfCount) {
+      while (concatSource.length < this.wheelCount / 2) {
         concatSource = concatSource.concat(source);
       }
       source = concatSource;
@@ -275,136 +219,99 @@ class IosSelector {
     this.source = source;
     const sourceLength = source.length;
 
-    let circleListHtml = '';
+    let optionListHtml = '';
     for (let i = 0; i < source.length; i++) {
-      circleListHtml += `<li
-        class="select-option"
-        style="
-          top: ${this.itemHeight * -0.5}px;
-          height: ${this.itemHeight}px;
-          line-height: ${this.itemHeight}px;
-          transform: rotateX(${-this.itemAngle * i}deg) translate3d(0, 0, ${this.radius}px);
-        "
-        data-index="${i}"
-      >
-        ${source[i].text}
-      </li>`;
+      optionListHtml += templates.getOptionItem({
+        top: this.itemHeight * -0.5,
+        height: this.itemHeight,
+        rotateX: -this.itemAngle * i,
+        radius: this.radius,
+        index: i,
+        text: source[i].text,
+      });
     }
 
     let highListHtml = '';
     for (let i = 0; i < source.length; i++) {
-      highListHtml += `<li
-        class="highlight-item"
-        style="height: ${this.itemHeight}px;"
-      >
-        ${source[i].text}
-      </li>`;
+      highListHtml += templates.getHighlightItem({
+        height: this.itemHeight,
+        text: source[i].text,
+      });
     }
 
-    if (this.options.type === 'infinite') {
-      for (let i = 0; i < this.quarterCount; i++) {
-        circleListHtml =
-          `<li
-          class="select-option"
-          style="
-            top: ${this.itemHeight * -0.5}px;
-            height: ${this.itemHeight}px;
-            line-height: ${this.itemHeight}px;
-            transform: rotateX(${this.itemAngle * (i + 1)}deg) translate3d(0, 0, ${
-            this.radius
-          }px);
-          "
-          data-index="${-i - 1}"
-        >
-          ${source[sourceLength - i - 1].text}
-        </li>` + circleListHtml;
+    if (this.variant === 'infinite') {
+      for (let i = 0; i < this.wheelCount / 4; i++) {
+        optionListHtml =
+          templates.getOptionItem({
+            top: this.itemHeight * -0.5,
+            height: this.itemHeight,
+            rotateX: this.itemAngle * (i + 1),
+            radius: this.radius,
+            index: -i - 1,
+            text: source[sourceLength - i - 1].text,
+          }) + optionListHtml;
 
-        circleListHtml += `<li
-          class="select-option"
-          style="
-            top: ${this.itemHeight * -0.5}px;
-            height: ${this.itemHeight}px;
-            line-height: ${this.itemHeight}px;
-            transform: rotateX(${-this.itemAngle * (i + sourceLength)}deg) translate3d(0, 0, ${
-          this.radius
-        }px);
-          "
-          data-index="${i + sourceLength}"
-        >
-          ${source[i].text}
-        </li>`;
+        optionListHtml += templates.getOptionItem({
+          top: this.itemHeight * -0.5,
+          height: this.itemHeight,
+          rotateX: -this.itemAngle * (i + sourceLength),
+          radius: this.radius,
+          index: i + sourceLength,
+          text: source[i].text,
+        });
       }
 
       highListHtml =
-        `<li
-        class="highlight-item"
-        style="height: ${this.itemHeight}px;"
-      >
-        ${source[sourceLength - 1].text}
-      </li>` + highListHtml;
-      highListHtml += `<li
-        class="highlight-item"
-        style="height: ${this.itemHeight}px;"
-      >
-        ${source[0].text}
-      </li>`;
+        templates.getHighlightItem({
+          height: this.itemHeight,
+          text: source[sourceLength - 1].text,
+        }) + highListHtml;
+
+      highListHtml += templates.getHighlightItem({
+        height: this.itemHeight,
+        text: source[0].text,
+      });
     }
 
-    this.elems.el.innerHTML = template
-      .replace('{{circleListHtml}}', circleListHtml)
+    this.el.container.innerHTML = templates
+      .getBase(-this.radius, this.itemHeight)
+      .replace('{{optionListHtml}}', optionListHtml)
       .replace('{{highListHtml}}', highListHtml);
-    this.elems.circleList = this.elems.el.querySelector('.select-options');
-    this.elems.circleItems = this.elems.el.querySelectorAll<HTMLElement>('.select-option');
+    this.el.optionList = this.el.container.querySelector(`.${templates.cn.optionList}`);
+    this.el.optionItems = this.el.container.querySelectorAll(`.${templates.cn.optionItem}`);
 
-    const highlight = this.elems.el.querySelector<HTMLElement>('.highlight');
-    if (!highlight) {
-      throw new Error('.highlight not exists');
-    }
-    const highlightList = this.elems.el.querySelector<HTMLElement>('.highlight-list');
+    const highlightList = this.el.container.querySelector<HTMLElement>(
+      `.${templates.cn.highlightList}`
+    );
     if (!highlightList) {
-      throw new Error('.highlight-list not exists');
+      throw new Error(`.${templates.cn.highlightList} not exists`);
     }
-    this.elems.highlight = highlight;
-    this.elems.highlightList = highlightList;
-    // this.elems.highListItems = this.elems.el.querySelectorAll<HTMLElement>('.highlight-item');
-
-    if (this.type === 'infinite') {
+    if (this.variant === 'infinite') {
       highlightList.style.top = -this.itemHeight + 'px';
     }
-
-    highlight.style.height = this.itemHeight + 'px';
-    highlight.style.lineHeight = this.itemHeight + 'px';
+    this.el.highlightList = highlightList;
   }
 
-  _normalizeScroll(scroll: number) {
-    let normalizedScroll = scroll;
-    while (normalizedScroll < 0) {
-      normalizedScroll += this.source.length;
-    }
-    normalizedScroll = normalizedScroll % this.source.length;
-    return normalizedScroll;
-  }
+  private _moveTo(scroll: number) {
+    if (!this.el.optionList) throw new Error('optionList not exists');
+    if (!this.el.highlightList) throw new Error('highlightList not exists');
+    if (!this.el.optionItems) throw new Error('optionItems not exists');
 
-  _moveTo(scroll: number) {
-    if (!this.elems.circleList) throw new Error('circleList not exists');
-    if (!this.elems.highlightList) throw new Error('highlightList not exists');
-    if (!this.elems.circleItems) throw new Error('circleItems not exists');
-
-    if (this.type === 'infinite') {
-      scroll = this._normalizeScroll(scroll);
+    if (this.variant === 'infinite') {
+      scroll = normalize(scroll, this.source.length);
     }
-    this.elems.circleList.style.transform = `translate3d(0, 0, ${-this.radius}px) rotateX(${
+    this.el.optionList.style.transform = `translate3d(0, 0, ${-this.radius}px) rotateX(${
       this.itemAngle * scroll
     }deg)`;
-    this.elems.highlightList.style.transform = `translate3d(0, ${
+    this.el.highlightList.style.transform = `translate3d(0, ${
       -scroll * this.itemHeight
     }px, 0)`;
 
-    [...this.elems.circleItems].forEach(itemElem => {
+    [...this.el.optionItems].forEach(itemElem => {
       if (itemElem.dataset.index === undefined) {
         throw new Error('itemElem.dataset.index not exists');
       }
-      if (Math.abs(+itemElem.dataset.index - scroll) > this.quarterCount) {
+      if (Math.abs(+itemElem.dataset.index - scroll) > this.wheelCount / 4) {
         itemElem.style.visibility = 'hidden';
       } else {
         itemElem.style.visibility = 'visible';
@@ -415,50 +322,35 @@ class IosSelector {
   }
 
   async _animateMoveByInitV(initV: number) {
-    let initScroll;
-    let finalScroll;
-    // let finalV;
-    let totalScrollLen;
-    let a;
-    let t;
+    if (this.variant === 'infinite') {
+      const a = initV > 0 ? -this.sensitivity : this.sensitivity;
+      const t = Math.abs(initV / a);
+      const totalScrollLen = initV * t + (a * t * t) / 2;
+      const finalScroll = Math.round(this.scroll + totalScrollLen);
 
-    if (this.type === 'normal') {
-      if (this.scroll < 0 || this.scroll > this.source.length - 1) {
-        a = this.exceedA;
-        initScroll = this.scroll;
-        finalScroll = this.scroll < 0 ? 0 : this.source.length - 1;
-        totalScrollLen = initScroll - finalScroll;
+      await this._animateToScroll(this.scroll, finalScroll, t, 'easeOutQuart');
+    } else if (this.scroll < 0 || this.scroll > this.source.length - 1) {
+      const finalScroll = this.scroll < 0 ? 0 : this.source.length - 1;
 
-        t = Math.sqrt(Math.abs(totalScrollLen / a));
-        // initV = a * t;
-        // initV = this.scroll > 0 ? -initV : initV;
-        // finalV = 0;
-        await this._animateToScroll(initScroll, finalScroll, t);
-      } else {
-        initScroll = this.scroll;
-        a = initV > 0 ? -this.alpha : this.alpha;
-        t = Math.abs(initV / a);
-        totalScrollLen = initV * t + (a * t * t) / 2;
-        finalScroll = Math.round(this.scroll + totalScrollLen);
-        finalScroll =
-          finalScroll < 0
-            ? 0
-            : finalScroll > this.source.length - 1
-            ? this.source.length - 1
-            : finalScroll;
-
-        totalScrollLen = finalScroll - initScroll;
-        t = Math.sqrt(Math.abs(totalScrollLen / a));
-        await this._animateToScroll(this.scroll, finalScroll, t, 'easeOutQuart');
-      }
+      await this._animateToScroll(
+        this.scroll,
+        finalScroll,
+        Math.sqrt(Math.abs((this.scroll - finalScroll) / this.exceedA))
+      );
     } else {
-      initScroll = this.scroll;
+      const a = initV > 0 ? -this.sensitivity : this.sensitivity;
+      let t = Math.abs(initV / a);
+      let totalScrollLen = initV * t + (a * t * t) / 2;
+      let finalScroll = Math.round(this.scroll + totalScrollLen);
+      finalScroll =
+        finalScroll < 0
+          ? 0
+          : finalScroll > this.source.length - 1
+          ? this.source.length - 1
+          : finalScroll;
 
-      a = initV > 0 ? -this.alpha : this.alpha;
-      t = Math.abs(initV / a);
-      totalScrollLen = initV * t + (a * t * t) / 2;
-      finalScroll = Math.round(this.scroll + totalScrollLen);
-
+      totalScrollLen = finalScroll - this.scroll;
+      t = Math.sqrt(Math.abs(totalScrollLen / a));
       await this._animateToScroll(this.scroll, finalScroll, t, 'easeOutQuart');
     }
 
@@ -499,13 +391,13 @@ class IosSelector {
     });
   }
 
-  _stop() {
+  private _stop() {
     this.moving = false;
     cancelAnimationFrame(this.moveT);
   }
 
-  _selectByScroll(scroll: number) {
-    scroll = this._normalizeScroll(scroll) | 0;
+  private _selectByScroll(scroll: number) {
+    scroll = normalize(scroll, this.source.length) | 0;
     if (scroll > this.source.length - 1) {
       scroll = this.source.length - 1;
       this._moveTo(scroll);
@@ -513,7 +405,6 @@ class IosSelector {
     this._moveTo(scroll);
     this.scroll = scroll;
     this.selected = this.source[scroll];
-    this.value = this.selected.value;
     this.onChange && this.onChange(this.selected);
   }
 
@@ -530,9 +421,9 @@ class IosSelector {
       if (this.source[i].value === value) {
         window.cancelAnimationFrame(this.moveT);
 
-        const initScroll = this._normalizeScroll(this.scroll);
+        const initScroll = normalize(this.scroll, this.source.length);
         const finalScroll = i;
-        const t = Math.sqrt(Math.abs((finalScroll - initScroll) / this.alpha));
+        const t = Math.sqrt(Math.abs((finalScroll - initScroll) / this.sensitivity));
         this._animateToScroll(initScroll, finalScroll, t);
         setTimeout(() => this._selectByScroll(i));
         return;
@@ -544,25 +435,23 @@ class IosSelector {
   destroy() {
     this._stop();
 
-    this.elems.el?.removeEventListener('touchstart', this.events.touchstart);
-    this.elems.el?.removeEventListener('touchmove', this.events.touchmove);
-    this.elems.el?.removeEventListener('touchend', this.events.touchend);
+    this.el.container?.removeEventListener('touchstart', this.events.touchstart);
+    this.el.container?.removeEventListener('touchmove', this.events.touchmove);
+    this.el.container?.removeEventListener('touchend', this.events.touchend);
     document.removeEventListener('mousedown', this.events.touchstart);
     document.removeEventListener('mousemove', this.events.touchmove);
     document.removeEventListener('mouseup', this.events.touchend);
 
-    const el = this.elems.el;
-    if (el) {
-      el.innerHTML = '';
+    const { container } = this.el;
+    if (container) {
+      container.innerHTML = '';
     }
-    this.elems = {
-      el: null,
-      circleList: null,
-      circleItems: null,
-
-      highlight: null,
+    this.el = {
+      container: null,
+      optionList: null,
+      optionItems: null,
       highlightList: null,
-      highListItems: null,
+      highlightItems: null,
     };
   }
 }
