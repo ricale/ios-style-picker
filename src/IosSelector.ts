@@ -67,6 +67,7 @@ class IosSelector {
     this.variant = options.variant ?? 'infinite';
     this.source = options.source;
     this.selected = this.source[0];
+    this.onChange = options.onChange;
 
     const count = options.count ?? 20;
     this.wheelCount = count - (count % 4); // 4의 배수여야 함
@@ -416,7 +417,7 @@ class IosSelector {
     }
   }
 
-  select(value: number) {
+  async select(value: number) {
     for (let i = 0; i < this.source.length; i++) {
       if (this.source[i].value === value) {
         window.cancelAnimationFrame(this.moveT);
@@ -424,8 +425,8 @@ class IosSelector {
         const initScroll = normalize(this.scroll, this.source.length);
         const finalScroll = i;
         const t = Math.sqrt(Math.abs((finalScroll - initScroll) / this.sensitivity));
-        this._animateToScroll(initScroll, finalScroll, t);
-        setTimeout(() => this._selectByScroll(i));
+        await this._animateToScroll(initScroll, finalScroll, t);
+        this._selectByScroll(i);
         return;
       }
     }
