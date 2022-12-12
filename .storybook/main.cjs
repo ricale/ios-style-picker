@@ -12,7 +12,11 @@ module.exports = {
   "core": {
     "builder": "@storybook/builder-vite"
   },
-  "features": {
-    "storyStoreV7": true
-  }
+  // "features": {
+  //   "storyStoreV7": true
+  // },
+  async viteFinal(config, { configType }) {
+    config.base = 'http://ricale.kr/ios-style-picker/';
+    return config;
+  },
 }
