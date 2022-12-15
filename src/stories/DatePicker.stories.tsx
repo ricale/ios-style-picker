@@ -9,3 +9,7 @@ export default {
 const Template: Story<DatePickerProps> = args => <DatePicker {...args} />;
 
 export const Default = Template.bind({});
+export const Infinite = Template.bind({});
+Infinite.args = {
+  infinite: true,
+};

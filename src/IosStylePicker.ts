@@ -218,61 +218,21 @@ class IosStylePicker {
       source = concatSource;
     }
     this.source = source;
-    const sourceLength = source.length;
 
-    let optionListHtml = '';
-    for (let i = 0; i < source.length; i++) {
-      optionListHtml += templates.getOptionItem({
-        top: this.itemHeight * -0.5,
-        height: this.itemHeight,
-        rotateX: -this.itemAngle * i,
-        radius: this.radius,
-        index: i,
-        text: source[i].text,
-      });
-    }
+    const optionListHtml = templates.getOptionItems({
+      isInfinite: this.variant === 'infinite',
+      wheelCount: this.wheelCount,
+      source: source,
+      itemAngle: this.itemAngle,
+      itemHeight: this.itemHeight,
+      radius: this.radius,
+    });
 
-    let highListHtml = '';
-    for (let i = 0; i < source.length; i++) {
-      highListHtml += templates.getHighlightItem({
-        height: this.itemHeight,
-        text: source[i].text,
-      });
-    }
-
-    if (this.variant === 'infinite') {
-      for (let i = 0; i < this.wheelCount / 4; i++) {
-        optionListHtml =
-          templates.getOptionItem({
-            top: this.itemHeight * -0.5,
-            height: this.itemHeight,
-            rotateX: this.itemAngle * (i + 1),
-            radius: this.radius,
-            index: -i - 1,
-            text: source[sourceLength - i - 1].text,
-          }) + optionListHtml;
-
-        optionListHtml += templates.getOptionItem({
-          top: this.itemHeight * -0.5,
-          height: this.itemHeight,
-          rotateX: -this.itemAngle * (i + sourceLength),
-          radius: this.radius,
-          index: i + sourceLength,
-          text: source[i].text,
-        });
-      }
-
-      highListHtml =
-        templates.getHighlightItem({
-          height: this.itemHeight,
-          text: source[sourceLength - 1].text,
-        }) + highListHtml;
-
-      highListHtml += templates.getHighlightItem({
-        height: this.itemHeight,
-        text: source[0].text,
-      });
-    }
+    const highListHtml = templates.getHighlightItems({
+      isInfinite: this.variant === 'infinite',
+      source: source,
+      itemHeight: this.itemHeight,
+    });
 
     this.el.container.innerHTML = templates
       .getBase(-this.radius, this.itemHeight)

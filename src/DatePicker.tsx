@@ -13,6 +13,7 @@ export type DatePickerProps = {
   fromDate?: Date;
   toDate?: Date;
   initDate?: Date;
+  infinite?: boolean;
 };
 type DatePickerStateRef = {
   currentYear: number;
@@ -29,6 +30,7 @@ function DatePicker({
   fromDate: _fromDate,
   toDate,
   initDate: _initDate,
+  infinite,
 }: DatePickerProps) {
   const fromDate = _fromDate ?? new Date();
   const initDate = _initDate ?? fromDate;
@@ -85,7 +87,7 @@ function DatePicker({
     };
 
     const yearSelector = new IosStylePicker(yearPickerRef.current!, {
-      variant: 'normal',
+      variant: infinite ? 'infinite' : 'normal',
       source: ref.current.yearSource,
       onChange: selected => {
         const changed = ref.current.currentYear !== selected.value;
@@ -101,7 +103,7 @@ function DatePicker({
     });
 
     const monthSelector = new IosStylePicker(monthPickerRef.current!, {
-      variant: 'normal',
+      variant: infinite ? 'infinite' : 'normal',
       source: ref.current.monthSource,
       onChange: selected => {
         const changed = ref.current.currentMonth !== selected.value;
@@ -115,7 +117,7 @@ function DatePicker({
     });
 
     const daySelector = new IosStylePicker(dayPickerRef.current!, {
-      variant: 'normal',
+      variant: infinite ? 'infinite' : 'normal',
       source: ref.current.daySource,
       onChange: selected => {
         const changed = ref.current.currentDay !== selected.value;
@@ -147,7 +149,7 @@ function DatePicker({
       monthSelector.destroy();
       daySelector.destroy();
     };
-  }, []);
+  }, [infinite]);
 
   return (
     <div className="DatePicker">

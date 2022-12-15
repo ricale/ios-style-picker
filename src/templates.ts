@@ -1,3 +1,6 @@
+import getRange from './getRange';
+import { IosStylePickerSourceItem } from './IosStylePicker';
+
 const classNames = {
   wrapper: 'select-wrap',
   optionList: 'select-options',
@@ -19,6 +22,21 @@ type GetOptionItemOptions = {
 type GetHighlightItemOptions = {
   height: number;
   text: string;
+};
+
+type GetOptionItemsOptions = {
+  isInfinite: boolean;
+  wheelCount: number;
+  source: { text: string }[];
+  itemAngle: number;
+  itemHeight: number;
+  radius: number;
+};
+
+type GetHighlightItemsOptions = {
+  isInfinite: boolean;
+  source: { text: string }[];
+  itemHeight: number;
 };
 
 const templates = {
@@ -62,6 +80,55 @@ const templates = {
 >
   ${text}
 </li>`,
+
+  getOptionItems: ({
+    isInfinite,
+    wheelCount,
+    source,
+    itemAngle,
+    itemHeight,
+    radius,
+  }: GetOptionItemsOptions) => {
+    const optionIndices = isInfinite
+      ? getRange(-wheelCount / 4, source.length + wheelCount / 4)
+      : getRange(0, source.length);
+
+    const optionListItems = optionIndices.map(i => ({
+      rotateX: -itemAngle * i,
+      index: i,
+      text: source[(i + source.length) % source.length].text,
+    }));
+
+    return optionListItems.reduce(
+      (acc, item) =>
+        `${acc}${templates.getOptionItem({
+          top: itemHeight * -0.5,
+          height: itemHeight,
+          rotateX: item.rotateX,
+          radius: radius,
+          index: item.index,
+          text: item.text,
+        })}`,
+      ''
+    );
+  },
+
+  getHighlightItems: ({ isInfinite, source, itemHeight }: GetHighlightItemsOptions) => {
+    const indices = isInfinite ? getRange(-1, source.length + 1) : getRange(0, source.length);
+
+    const items = indices.map(i => ({
+      text: source[(i + source.length) % source.length].text,
+    }));
+
+    return items.reduce(
+      (acc, item) =>
+        `${acc}${templates.getHighlightItem({
+          height: itemHeight,
+          text: item.text,
+        })}`,
+      ''
+    );
+  },
 };
 
 export default templates;
