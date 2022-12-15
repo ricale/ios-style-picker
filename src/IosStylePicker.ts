@@ -2,34 +2,34 @@ import easing from './easing';
 import normalize from './normalize';
 import templates from './templates';
 
-type IosSelctorVariant = 'infinite' | 'normal';
-export interface IosSelectorSourceItem {
+type IosStylePickerVariant = 'infinite' | 'normal';
+export interface IosStylePickerSourceItem {
   value: number;
   text: string;
 }
 
-interface IosSelectorTouchData {
+interface IosStylePickerTouchData {
   startY: number;
   yArr: [number, number][];
   touchScroll: number;
 }
-type IosSelctorUserEvent = MouseEvent | TouchEvent;
+type IosStylePickerUserEvent = MouseEvent | TouchEvent;
 
-export interface IosSelectorOptions {
-  variant?: IosSelctorVariant;
-  source: IosSelectorSourceItem[];
-  onChange?: (selected: IosSelectorSourceItem) => void;
+export interface IosStylePickerOptions {
+  variant?: IosStylePickerVariant;
+  source: IosStylePickerSourceItem[];
+  onChange?: (selected: IosStylePickerSourceItem) => void;
   count?: number;
   sensitivity?: number;
   value?: number;
 }
 
-class IosSelector {
-  private variant: IosSelctorVariant;
-  private source: IosSelectorSourceItem[];
+class IosStylePicker {
+  private variant: IosStylePickerVariant;
+  private source: IosStylePickerSourceItem[];
   private selected: { value: number; text: string };
 
-  private onChange?: (selected: IosSelectorSourceItem) => void;
+  private onChange?: (selected: IosStylePickerSourceItem) => void;
 
   private sensitivity: number;
   private wheelCount: number;
@@ -47,9 +47,9 @@ class IosSelector {
   };
 
   private events: {
-    touchstart: (evt: IosSelctorUserEvent) => void;
-    touchmove: (evt: IosSelctorUserEvent) => void;
-    touchend: (evt: IosSelctorUserEvent) => void;
+    touchstart: (evt: IosStylePickerUserEvent) => void;
+    touchmove: (evt: IosStylePickerUserEvent) => void;
+    touchend: (evt: IosStylePickerUserEvent) => void;
   };
 
   private itemHeight: number;
@@ -57,13 +57,13 @@ class IosSelector {
   private radius: number;
   private scroll: number;
 
-  private touchData: IosSelectorTouchData = {
+  private touchData: IosStylePickerTouchData = {
     startY: 0,
     yArr: [],
     touchScroll: 0,
   };
 
-  constructor(targetSelector: string, options: IosSelectorOptions) {
+  constructor(targetElement: HTMLElement, options: IosStylePickerOptions) {
     this.variant = options.variant ?? 'infinite';
     this.source = options.source;
     this.selected = this.source[0];
@@ -77,9 +77,9 @@ class IosSelector {
     this.moveT = 0;
     this.moving = false;
 
-    const container = document.querySelector<HTMLElement>(targetSelector);
+    const container = targetElement;
     if (!container) {
-      throw new Error(`element ${targetSelector} not exists`);
+      throw new Error(`targetElement does not exists.`);
     }
     this.el = {
       container,
@@ -115,7 +115,7 @@ class IosSelector {
   }
 
   private _createEventListener(eventName: 'touchstart' | 'touchmove' | 'touchend') {
-    return (evt: IosSelctorUserEvent) => {
+    return (evt: IosStylePickerUserEvent) => {
       if (
         !this.el.container?.contains(evt.target as Node) &&
         evt.target !== this.el.container
@@ -130,9 +130,9 @@ class IosSelector {
     };
   }
 
-  private _touchstart(evt: IosSelctorUserEvent) {
+  private _touchstart(evt: IosStylePickerUserEvent) {
     if (!this.el.container) {
-      throw new Error('container not exists');
+      throw new Error('container does not exists');
     }
 
     this.el.container.addEventListener('touchmove', this.events.touchmove);
@@ -146,7 +146,7 @@ class IosSelector {
     this._stop();
   }
 
-  private _touchmove(evt: IosSelctorUserEvent) {
+  private _touchmove(evt: IosStylePickerUserEvent) {
     // const eventY = isMouseEvent(evt) ? evt.clientY : evt.touches[0].clientY;
     const eventY = (evt as MouseEvent).clientY ?? (evt as TouchEvent).touches[0].clientY;
     this.touchData.yArr.push([eventY, new Date().getTime()]);
@@ -184,9 +184,9 @@ class IosSelector {
     return Math.abs(v) > 30 ? 30 * sign : v;
   }
 
-  private _touchend(_evt: IosSelctorUserEvent) {
+  private _touchend(_evt: IosStylePickerUserEvent) {
     if (!this.el.container) {
-      throw new Error('container not exists');
+      throw new Error('container does not exists.');
     }
 
     this.el.container.removeEventListener('touchmove', this.events.touchmove);
@@ -198,18 +198,18 @@ class IosSelector {
     this._animateMoveByInitV(v);
   }
 
-  private _create(source: IosSelectorSourceItem[]) {
+  private _create(source: IosStylePickerSourceItem[]) {
     if (!source.length) {
-      throw new Error('source not exists');
+      throw new Error('source does not exists.');
     }
     if (!this.el.container) {
-      throw new Error('container not exists');
+      throw new Error('container does not exists.');
     }
 
     // 무한 스크롤을 위해 데이터 복제 처리
     // 링이 돌아갈 때 데이터가 끊임없이 보여야 한다.
     if (this.variant === 'infinite') {
-      let concatSource: IosSelectorSourceItem[] = [...source];
+      let concatSource: IosStylePickerSourceItem[] = [...source];
       // 링의 this.wheelCount / 2 보다 데이터 갯수가 적으면, 뒤에 그대로 붙인다.
       // 왜 반절이냐, 사용자에게는 반절밖에 안보이기 때문
       while (concatSource.length < this.wheelCount / 2) {
@@ -285,7 +285,7 @@ class IosSelector {
       `.${templates.cn.highlightList}`
     );
     if (!highlightList) {
-      throw new Error(`.${templates.cn.highlightList} not exists`);
+      throw new Error(`.${templates.cn.highlightList} does not exists.`);
     }
     if (this.variant === 'infinite') {
       highlightList.style.top = -this.itemHeight + 'px';
@@ -294,9 +294,9 @@ class IosSelector {
   }
 
   private _moveTo(scroll: number) {
-    if (!this.el.optionList) throw new Error('optionList not exists');
-    if (!this.el.highlightList) throw new Error('highlightList not exists');
-    if (!this.el.optionItems) throw new Error('optionItems not exists');
+    if (!this.el.optionList) throw new Error('optionList does not exists');
+    if (!this.el.highlightList) throw new Error('highlightList does not exists');
+    if (!this.el.optionItems) throw new Error('optionItems does not exists');
 
     if (this.variant === 'infinite') {
       scroll = normalize(scroll, this.source.length);
@@ -310,7 +310,7 @@ class IosSelector {
 
     [...this.el.optionItems].forEach(itemElem => {
       if (itemElem.dataset.index === undefined) {
-        throw new Error('itemElem.dataset.index not exists');
+        throw new Error('itemElem.dataset.index does not exists');
       }
       if (Math.abs(+itemElem.dataset.index - scroll) > this.wheelCount / 4) {
         itemElem.style.visibility = 'hidden';
@@ -409,7 +409,7 @@ class IosSelector {
     this.onChange && this.onChange(this.selected);
   }
 
-  updateSource(source: IosSelectorSourceItem[]) {
+  updateSource(source: IosStylePickerSourceItem[]) {
     this._create(source);
 
     if (!this.moving) {
@@ -457,4 +457,4 @@ class IosSelector {
   }
 }
 
-export default IosSelector;
+export default IosStylePicker;
