@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import IosSelector, { IosSelectorOptions } from './IosSelector';
+import IosStylePicker, { IosStylePickerOptions } from './IosStylePicker';
 import getYears from './getYears';
 import getMonths from './getMonth';
 import getDays from './getDays';
@@ -18,9 +18,9 @@ type DatePickerStateRef = {
   currentYear: number;
   currentMonth: number;
   currentDay: number;
-  yearSource: IosSelectorOptions['source'];
-  monthSource: IosSelectorOptions['source'];
-  daySource: IosSelectorOptions['source'];
+  yearSource: IosStylePickerOptions['source'];
+  monthSource: IosStylePickerOptions['source'];
+  daySource: IosStylePickerOptions['source'];
   onChange: DatePickerProps['onChange'];
   onChangeTimeout: NodeJS.Timeout | null;
 };
@@ -43,6 +43,10 @@ function DatePicker({
     onChange,
     onChangeTimeout: null,
   });
+
+  const yearPickerRef = useRef<HTMLDivElement>(null);
+  const monthPickerRef = useRef<HTMLDivElement>(null);
+  const dayPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ref.current.onChange = onChange;
@@ -80,7 +84,7 @@ function DatePicker({
       daySelector.updateSource(ref.current.daySource);
     };
 
-    const yearSelector = new IosSelector('#year1', {
+    const yearSelector = new IosStylePicker(yearPickerRef.current!, {
       variant: 'normal',
       source: ref.current.yearSource,
       onChange: selected => {
@@ -96,7 +100,7 @@ function DatePicker({
       },
     });
 
-    const monthSelector = new IosSelector('#month1', {
+    const monthSelector = new IosStylePicker(monthPickerRef.current!, {
       variant: 'normal',
       source: ref.current.monthSource,
       onChange: selected => {
@@ -110,7 +114,7 @@ function DatePicker({
       },
     });
 
-    const daySelector = new IosSelector('#day1', {
+    const daySelector = new IosStylePicker(dayPickerRef.current!, {
       variant: 'normal',
       source: ref.current.daySource,
       onChange: selected => {
@@ -147,18 +151,9 @@ function DatePicker({
 
   return (
     <div className="DatePicker">
-      <div
-        className="year"
-        id="year1"
-      ></div>
-      <div
-        className="month"
-        id="month1"
-      ></div>
-      <div
-        className="day"
-        id="day1"
-      ></div>
+      <div ref={yearPickerRef} />
+      <div ref={monthPickerRef} />
+      <div ref={dayPickerRef} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ module.exports = {
   //   "storyStoreV7": true
   // },
   async viteFinal(config, { configType }) {
-    config.base = 'http://ricale.kr/ios-style-picker/';
+    config.base = '/ios-style-picker/';
     return config;
   },
 }
