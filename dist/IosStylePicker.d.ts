@@ -1,18 +1,18 @@
 import easing from './easing';
-declare type IosSelctorVariant = 'infinite' | 'normal';
-export interface IosSelectorSourceItem {
+declare type IosStylePickerVariant = 'infinite' | 'normal';
+export interface IosStylePickerSourceItem {
     value: number;
     text: string;
 }
-export interface IosSelectorOptions {
-    variant?: IosSelctorVariant;
-    source: IosSelectorSourceItem[];
-    onChange?: (selected: IosSelectorSourceItem) => void;
+export interface IosStylePickerOptions {
+    variant?: IosStylePickerVariant;
+    source: IosStylePickerSourceItem[];
+    onChange?: (selected: IosStylePickerSourceItem) => void;
     count?: number;
     sensitivity?: number;
     value?: number;
 }
-declare class IosSelector {
+declare class IosStylePicker {
     private variant;
     private source;
     private selected;
@@ -22,14 +22,15 @@ declare class IosSelector {
     private exceedA;
     private moveT;
     private moving;
-    private el;
+    private targetElement;
+    private html;
     private events;
     private itemHeight;
     private itemAngle;
     private radius;
     private scroll;
     private touchData;
-    constructor(targetSelector: string, options: IosSelectorOptions);
+    constructor(targetElement: HTMLElement, options: IosStylePickerOptions);
     private _createEventListener;
     private _touchstart;
     private _touchmove;
@@ -41,8 +42,8 @@ declare class IosSelector {
     _animateToScroll(initScroll: number, finalScroll: number, t: number, easingName?: keyof typeof easing): Promise<void> | undefined;
     private _stop;
     private _selectByScroll;
-    updateSource(source: IosSelectorSourceItem[]): void;
+    updateSource(source: IosStylePickerSourceItem[]): void;
     select(value: number): Promise<void>;
     destroy(): void;
 }
-export default IosSelector;
+export default IosStylePicker;

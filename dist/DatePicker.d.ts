@@ -3,6 +3,8 @@ export declare type DatePickerProps = {
     fromDate?: Date;
     toDate?: Date;
     initDate?: Date;
+    infinite?: boolean;
+    className?: string;
 };
-declare function DatePicker({ onChange, fromDate: _fromDate, toDate, initDate: _initDate, }: DatePickerProps): JSX.Element;
+declare function DatePicker({ onChange, fromDate: _fromDate, toDate, initDate: _initDate, infinite, className: _className, }: DatePickerProps): JSX.Element;
 export default DatePicker;
