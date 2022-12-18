@@ -1,6 +1,6 @@
 import easing from './easing';
 import normalize from './normalize';
-import templates from './templates';
+import IosStylePickerHtml from './IosStylePickerHtml';
 
 type IosStylePickerVariant = 'infinite' | 'normal';
 export interface IosStylePickerSourceItem {
@@ -37,14 +37,8 @@ class IosStylePicker {
   private moveT: number;
   private moving: boolean;
 
-  private el: {
-    container: HTMLElement | null;
-    optionList: HTMLElement | null;
-    optionItems: NodeListOf<HTMLElement> | null;
-    // highlight: HTMLElement | null;
-    highlightList: HTMLElement | null;
-    highlightItems: NodeListOf<HTMLElement> | null;
-  };
+  private targetElement: HTMLElement;
+  private html: IosStylePickerHtml | undefined;
 
   private events: {
     touchstart: (evt: IosStylePickerUserEvent) => void;
@@ -77,21 +71,12 @@ class IosStylePicker {
     this.moveT = 0;
     this.moving = false;
 
-    const container = targetElement;
-    if (!container) {
+    this.targetElement = targetElement;
+    if (!this.targetElement) {
       throw new Error(`targetElement does not exists.`);
     }
-    this.el = {
-      container,
-      optionList: null,
-      optionItems: null,
 
-      // highlight: null,
-      highlightList: null,
-      highlightItems: null,
-    };
-
-    this.itemHeight = (container.offsetHeight * 3) / count;
+    this.itemHeight = (this.targetElement.offsetHeight * 3) / count;
     this.itemAngle = 360 / count; // 아이템 간 각도 차이
     this.radius = this.itemHeight / Math.tan((this.itemAngle * Math.PI) / 180); // 반지름
 
@@ -104,9 +89,9 @@ class IosStylePicker {
       touchend: this._createEventListener('touchend'),
     };
 
-    container.addEventListener('touchstart', this.events.touchstart);
+    this.html?.addEventListener('touchstart', this.events.touchstart);
     document.addEventListener('mousedown', this.events.touchstart);
-    container.addEventListener('touchend', this.events.touchend);
+    this.html?.addEventListener('touchend', this.events.touchend);
     document.addEventListener('mouseup', this.events.touchend);
 
     if (this.source.length) {
@@ -114,12 +99,11 @@ class IosStylePicker {
     }
   }
 
+  // TODO: kangseongofdk
+  // IosStylePickerHtml should be in charge of this method.
   private _createEventListener(eventName: 'touchstart' | 'touchmove' | 'touchend') {
     return (evt: IosStylePickerUserEvent) => {
-      if (
-        !this.el.container?.contains(evt.target as Node) &&
-        evt.target !== this.el.container
-      ) {
+      if (!this.html?.equalOrContains(evt.target)) {
         return;
       }
       if (this.source.length === 0) {
@@ -131,11 +115,11 @@ class IosStylePicker {
   }
 
   private _touchstart(evt: IosStylePickerUserEvent) {
-    if (!this.el.container) {
-      throw new Error('container does not exists');
+    if (!this.html) {
+      throw new Error('this.html does not exists');
     }
 
-    this.el.container.addEventListener('touchmove', this.events.touchmove);
+    this.html.addEventListener('touchmove', this.events.touchmove);
     document.addEventListener('mousemove', this.events.touchmove);
 
     // const eventY = isMouseEvent(evt) ? evt.clientY : evt.touches[0].clientY;
@@ -185,11 +169,11 @@ class IosStylePicker {
   }
 
   private _touchend(_evt: IosStylePickerUserEvent) {
-    if (!this.el.container) {
-      throw new Error('container does not exists.');
+    if (!this.html) {
+      throw new Error('this.html does not exists.');
     }
 
-    this.el.container.removeEventListener('touchmove', this.events.touchmove);
+    this.html.removeEventListener('touchmove', this.events.touchmove);
     document.removeEventListener('mousemove', this.events.touchmove);
 
     const v = this._getInitV(/*touchData*/);
@@ -201,9 +185,6 @@ class IosStylePicker {
   private _create(source: IosStylePickerSourceItem[]) {
     if (!source.length) {
       throw new Error('source does not exists.');
-    }
-    if (!this.el.container) {
-      throw new Error('container does not exists.');
     }
 
     // 무한 스크롤을 위해 데이터 복제 처리
@@ -218,106 +199,26 @@ class IosStylePicker {
       source = concatSource;
     }
     this.source = source;
-    const sourceLength = source.length;
 
-    let optionListHtml = '';
-    for (let i = 0; i < source.length; i++) {
-      optionListHtml += templates.getOptionItem({
-        top: this.itemHeight * -0.5,
-        height: this.itemHeight,
-        rotateX: -this.itemAngle * i,
-        radius: this.radius,
-        index: i,
-        text: source[i].text,
-      });
-    }
-
-    let highListHtml = '';
-    for (let i = 0; i < source.length; i++) {
-      highListHtml += templates.getHighlightItem({
-        height: this.itemHeight,
-        text: source[i].text,
-      });
-    }
-
-    if (this.variant === 'infinite') {
-      for (let i = 0; i < this.wheelCount / 4; i++) {
-        optionListHtml =
-          templates.getOptionItem({
-            top: this.itemHeight * -0.5,
-            height: this.itemHeight,
-            rotateX: this.itemAngle * (i + 1),
-            radius: this.radius,
-            index: -i - 1,
-            text: source[sourceLength - i - 1].text,
-          }) + optionListHtml;
-
-        optionListHtml += templates.getOptionItem({
-          top: this.itemHeight * -0.5,
-          height: this.itemHeight,
-          rotateX: -this.itemAngle * (i + sourceLength),
-          radius: this.radius,
-          index: i + sourceLength,
-          text: source[i].text,
-        });
-      }
-
-      highListHtml =
-        templates.getHighlightItem({
-          height: this.itemHeight,
-          text: source[sourceLength - 1].text,
-        }) + highListHtml;
-
-      highListHtml += templates.getHighlightItem({
-        height: this.itemHeight,
-        text: source[0].text,
-      });
-    }
-
-    this.el.container.innerHTML = templates
-      .getBase(-this.radius, this.itemHeight)
-      .replace('{{optionListHtml}}', optionListHtml)
-      .replace('{{highListHtml}}', highListHtml);
-    this.el.optionList = this.el.container.querySelector(`.${templates.cn.optionList}`);
-    this.el.optionItems = this.el.container.querySelectorAll(`.${templates.cn.optionItem}`);
-
-    const highlightList = this.el.container.querySelector<HTMLElement>(
-      `.${templates.cn.highlightList}`
-    );
-    if (!highlightList) {
-      throw new Error(`.${templates.cn.highlightList} does not exists.`);
-    }
-    if (this.variant === 'infinite') {
-      highlightList.style.top = -this.itemHeight + 'px';
-    }
-    this.el.highlightList = highlightList;
+    this.html = new IosStylePickerHtml({
+      container: this.targetElement,
+      source: this.source,
+      isInfinite: this.variant === 'infinite',
+      wheelCount: this.wheelCount,
+      itemAngle: this.itemAngle,
+      itemHeight: this.itemHeight,
+      radius: this.radius,
+    });
   }
 
   private _moveTo(scroll: number) {
-    if (!this.el.optionList) throw new Error('optionList does not exists');
-    if (!this.el.highlightList) throw new Error('highlightList does not exists');
-    if (!this.el.optionItems) throw new Error('optionItems does not exists');
+    if (!this.html) throw new Error('html does not exists');
 
     if (this.variant === 'infinite') {
       scroll = normalize(scroll, this.source.length);
     }
-    this.el.optionList.style.transform = `translate3d(0, 0, ${-this.radius}px) rotateX(${
-      this.itemAngle * scroll
-    }deg)`;
-    this.el.highlightList.style.transform = `translate3d(0, ${
-      -scroll * this.itemHeight
-    }px, 0)`;
 
-    [...this.el.optionItems].forEach(itemElem => {
-      if (itemElem.dataset.index === undefined) {
-        throw new Error('itemElem.dataset.index does not exists');
-      }
-      if (Math.abs(+itemElem.dataset.index - scroll) > this.wheelCount / 4) {
-        itemElem.style.visibility = 'hidden';
-      } else {
-        itemElem.style.visibility = 'visible';
-      }
-    });
+    this.html.scroll(scroll);
 
     return scroll;
   }
@@ -436,24 +337,14 @@ class IosStylePicker {
   destroy() {
     this._stop();
 
-    this.el.container?.removeEventListener('touchstart', this.events.touchstart);
-    this.el.container?.removeEventListener('touchmove', this.events.touchmove);
-    this.el.container?.removeEventListener('touchend', this.events.touchend);
+    this.html?.removeEventListener('touchstart', this.events.touchstart);
+    this.html?.removeEventListener('touchmove', this.events.touchmove);
+    this.html?.removeEventListener('touchend', this.events.touchend);
     document.removeEventListener('mousedown', this.events.touchstart);
     document.removeEventListener('mousemove', this.events.touchmove);
     document.removeEventListener('mouseup', this.events.touchend);
 
-    const { container } = this.el;
-    if (container) {
-      container.innerHTML = '';
-    }
-    this.el = {
-      container: null,
-      optionList: null,
-      optionItems: null,
-      highlightList: null,
-      highlightItems: null,
-    };
+    this.html?.clear();
   }
 }
 
