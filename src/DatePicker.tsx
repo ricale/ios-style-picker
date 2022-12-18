@@ -14,6 +14,7 @@ export type DatePickerProps = {
   toDate?: Date;
   initDate?: Date;
   infinite?: boolean;
+  className?: string;
 };
 type DatePickerStateRef = {
   currentYear: number;
@@ -31,9 +32,11 @@ function DatePicker({
   toDate,
   initDate: _initDate,
   infinite,
+  className: _className,
 }: DatePickerProps) {
   const fromDate = _fromDate ?? new Date();
   const initDate = _initDate ?? fromDate;
+  const className = 'ios-style-date-picker' + (_className ? ` ${_className}` : '');
 
   const ref = useRef<DatePickerStateRef>({
     currentYear: fromDate.getFullYear(),
@@ -152,7 +155,7 @@ function DatePicker({
   }, [infinite]);
 
   return (
-    <div className="DatePicker">
+    <div className={className}>
       <div ref={yearPickerRef} />
       <div ref={monthPickerRef} />
       <div ref={dayPickerRef} />
