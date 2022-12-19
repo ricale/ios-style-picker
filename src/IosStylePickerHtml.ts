@@ -57,7 +57,7 @@ class IosStylePickerHtml {
 <div class="${classNames.wrapper}">
   <ul
     class="${classNames.optionList}"
-    style="transform: translate3d(0, 0, ${this.radius}px) rotateX(0deg);"
+    style="transform: translate3d(0, 0, ${-this.radius}px) rotateX(0deg);"
   >
     ${optionListHtml}
   </ul>
@@ -92,7 +92,7 @@ class IosStylePickerHtml {
       throw new Error(`highlightList does not exists.`);
     }
     if (isInfinite) {
-      highlightList.style.top = this.itemHeight + 'px';
+      highlightList.style.top = `${-this.itemHeight}px`;
     }
     this._highlightList = highlightList;
   }
