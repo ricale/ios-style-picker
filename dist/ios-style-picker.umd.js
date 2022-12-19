@@ -12,7 +12,7 @@ Check the top-level render call using <`+i+">.")}return t}}function Me(e,t){{if(
 <div class="${j.wrapper}">
   <ul
     class="${j.optionList}"
-    style="transform: translate3d(0, 0, ${this.radius}px) rotateX(0deg);"
+    style="transform: translate3d(0, 0, ${-this.radius}px) rotateX(0deg);"
   >
     ${b}
   </ul>
@@ -24,7 +24,7 @@ Check the top-level render call using <`+i+">.")}return t}}function Me(e,t){{if(
       ${u}
     </ul>
   </div>
-</div>`;const p=this._container.querySelector(`.${j.optionList}`);if(!p)throw new Error("optionList does not exists");this._optionList=p;const R=this._container.querySelectorAll(`.${j.optionItem}`);if(!R)throw new Error("optionList does not exists");this._optionItems=R;const x=this._container.querySelector(`.${j.highlightList}`);if(!x)throw new Error("highlightList does not exists.");s&&(x.style.top=this.itemHeight+"px"),this._highlightList=x}_getOptionItems(){return(this._isInfinite?B(-this.wheelCount/4,this._source.length+this.wheelCount/4):B(0,this._source.length)).map(s=>({rotateX:-this.itemAngle*s,index:s,text:this._source[(s+this._source.length)%this._source.length].text})).reduce((s,o)=>`${s}
+</div>`;const p=this._container.querySelector(`.${j.optionList}`);if(!p)throw new Error("optionList does not exists");this._optionList=p;const R=this._container.querySelectorAll(`.${j.optionItem}`);if(!R)throw new Error("optionList does not exists");this._optionItems=R;const x=this._container.querySelector(`.${j.highlightList}`);if(!x)throw new Error("highlightList does not exists.");s&&(x.style.top=`${-this.itemHeight}px`),this._highlightList=x}_getOptionItems(){return(this._isInfinite?B(-this.wheelCount/4,this._source.length+this.wheelCount/4):B(0,this._source.length)).map(s=>({rotateX:-this.itemAngle*s,index:s,text:this._source[(s+this._source.length)%this._source.length].text})).reduce((s,o)=>`${s}
 <li
   class="${j.optionItem}"
   style="

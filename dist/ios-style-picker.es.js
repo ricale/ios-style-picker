@@ -654,7 +654,7 @@ class wt {
 <div class="${k.wrapper}">
   <ul
     class="${k.optionList}"
-    style="transform: translate3d(0, 0, ${this.radius}px) rotateX(0deg);"
+    style="transform: translate3d(0, 0, ${-this.radius}px) rotateX(0deg);"
   >
     ${E}
   </ul>
@@ -682,7 +682,7 @@ class wt {
     );
     if (!S)
       throw new Error("highlightList does not exists.");
-    s && (S.style.top = this.itemHeight + "px"), this._highlightList = S;
+    s && (S.style.top = `${-this.itemHeight}px`), this._highlightList = S;
   }
   _getOptionItems() {
     return (this._isInfinite ? K(-this.wheelCount / 4, this._source.length + this.wheelCount / 4) : K(0, this._source.length)).map((s) => ({
