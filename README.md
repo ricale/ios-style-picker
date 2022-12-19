@@ -1,5 +1,9 @@
 # iOS Style Picker
 
+![sample](docs/sample.jpeg)
+
+[Demo](https://ricale.kr/ios-style-picker)
+
 ## 1. Install
 
 ```
@@ -7,8 +11,6 @@ $ yarn add ios-style-picker
 ```
 
 ## 2. Usage
-
-### 2.1. Example
 
 ```tsx
 import { DatePicker } from 'ios-style-picker';
@@ -32,7 +34,7 @@ function SomeComp(/* ... */) {
 }
 ```
 
-### 2.2. Props
+### 2.1. Props
 
 ```ts
 export type DatePickerProps = {
@@ -45,7 +47,7 @@ export type DatePickerProps = {
 };
 ```
 
-### 2.3. Class Names
+### 2.2. Class Names
 
 ```
 div.ios-style-date-picker
