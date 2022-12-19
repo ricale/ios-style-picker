@@ -1,6 +1,6 @@
 {
   "name": "ios-style-picker",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "main": "./dist/ios-style-picker.umd.cjs",
   "module": "./dist/ios-style-picker.es.js",
