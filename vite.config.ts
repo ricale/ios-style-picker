@@ -12,6 +12,8 @@ export default defineConfig({
         iosStylePicker: path.resolve(__dirname, 'src/index.ts'),
         koFormatter: path.resolve(__dirname, 'src/formatters/ko.ts'),
         enFormatter: path.resolve(__dirname, 'src/formatters/en.ts'),
+        jaFormatter: path.resolve(__dirname, 'src/formatters/ja.ts'),
+        zhFormatter: path.resolve(__dirname, 'src/formatters/zh.ts'),
       },
       name: 'iosStylePicker',
       fileName: (format, entryName) =>
