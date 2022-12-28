@@ -2,8 +2,33 @@
   "name": "ios-style-picker",
   "version": "0.0.3",
   "type": "module",
-  "main": "./dist/ios-style-picker.umd.cjs",
-  "module": "./dist/ios-style-picker.es.js",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/iosStylePicker.umd.cjs",
+  "module": "./dist/iosStylePicker.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/iosStylePicker.es.js",
+      "require": "./dist/iosStylePicker.umd.cjs"
+    },
+    "./formatters/ko": {
+      "import": "./formatters/ko.es.js",
+      "require": "./formatters/ko.umd.cjs"
+    },
+    "./formatters/en": {
+      "import": "./formatters/en.es.js",
+      "require": "./formatters/en.umd.cjs"
+    },
+    "./formatters/ja": {
+      "import": "./formatters/ja.es.js",
+      "require": "./formatters/ja.umd.cjs"
+    },
+    "./formatters/zh": {
+      "import": "./formatters/zh.es.js",
+      "require": "./formatters/zh.umd.cjs"
+    }
+  },
   "types": "dist/index.d.ts",
   "author": {
     "name": "ricale",
