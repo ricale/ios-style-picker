@@ -1,40 +1,63 @@
 import { useEffect, useRef } from 'react';
-import IosStylePicker, { IosStylePickerOptions } from './IosStylePicker';
-import getYears from './getYears';
-import getMonths from './getMonth';
-import getDays from './getDays';
+import IosStylePicker from './IosStylePicker';
+import DatePickerSource from './DatePickerSource';
 
 import './DatePicker.css';
+import { DatePickerValueFormater } from './types';
 
 const ONCHANGE_TIMEOUT_DELAY = 100;
 
 export type DatePickerProps = {
+  /**
+   * Callback for changing values.
+   */
   onChange: (year: number, month: number, day: number) => void;
+  /**
+   * First date of date picker.
+   */
   fromDate?: Date;
+  /**
+   * Last date of date picker. Default to 40 years later from `fromDate`.
+   */
   toDate?: Date;
+  /**
+   * Initial date.
+   */
   initDate?: Date;
+  /**
+   * Scroll infinitely or not.
+   */
   infinite?: boolean;
+  /**
+   * Formatter for picker.
+   */
+  formatters?: {
+    year?: DatePickerValueFormater;
+    month?: DatePickerValueFormater;
+    day?: DatePickerValueFormater;
+  };
+  /**
+   * Classes of container element.
+   */
   className?: string;
 };
 type DatePickerStateRef = {
   currentYear: number;
   currentMonth: number;
   currentDay: number;
-  yearSource: IosStylePickerOptions['source'];
-  monthSource: IosStylePickerOptions['source'];
-  daySource: IosStylePickerOptions['source'];
+  source: DatePickerSource;
   onChange: DatePickerProps['onChange'];
   onChangeTimeout: NodeJS.Timeout | null;
 };
 function DatePicker({
   onChange,
-  fromDate: _fromDate,
+  fromDate = new Date(),
   toDate,
   initDate: _initDate,
   infinite,
+  formatters,
   className: _className,
 }: DatePickerProps) {
-  const fromDate = _fromDate ?? new Date();
   const initDate = _initDate ?? fromDate;
   const className = 'ios-style-date-picker' + (_className ? ` ${_className}` : '');
 
@@ -42,59 +65,63 @@ function DatePicker({
     currentYear: fromDate.getFullYear(),
     currentMonth: fromDate.getMonth() + 1,
     currentDay: fromDate.getDate(),
-    yearSource: getYears(fromDate, toDate),
-    monthSource: getMonths(fromDate.getFullYear(), fromDate, toDate),
-    daySource: getDays(fromDate.getFullYear(), fromDate.getMonth() + 1, fromDate, toDate),
+    source: new DatePickerSource({
+      fromDate,
+      toDate,
+      currentYear: fromDate.getFullYear(),
+      currentMonth: fromDate.getMonth() + 1,
+      formatters,
+    }),
     onChange,
     onChangeTimeout: null,
-  });
+  }).current;
 
   const yearPickerRef = useRef<HTMLDivElement>(null);
   const monthPickerRef = useRef<HTMLDivElement>(null);
   const dayPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ref.current.onChange = onChange;
+    ref.source.init({
+      fromDate,
+      toDate,
+      currentYear: ref.currentYear,
+      currentMonth: ref.currentMonth,
+    });
+  }, [fromDate, toDate]);
+
+  useEffect(() => {
+    ref.onChange = onChange;
   }, [onChange]);
 
   useEffect(() => {
     const onChange = () => {
       // NOTE: kangseongofdk
       // 잦은 onChange 콜을 막기 위한 timeout 처리
-      if (ref.current.onChangeTimeout) {
-        clearTimeout(ref.current.onChangeTimeout);
+      if (ref.onChangeTimeout) {
+        clearTimeout(ref.onChangeTimeout);
       }
-      ref.current.onChangeTimeout = setTimeout(() => {
-        ref.current.onChange(
-          ref.current.currentYear,
-          ref.current.currentMonth,
-          ref.current.currentDay
-        );
-        ref.current.onChangeTimeout = null;
+      ref.onChangeTimeout = setTimeout(() => {
+        ref.onChange(ref.currentYear, ref.currentMonth, ref.currentDay);
+        ref.onChangeTimeout = null;
       }, ONCHANGE_TIMEOUT_DELAY);
     };
 
     const updateMonthSource = () => {
-      ref.current.monthSource = getMonths(ref.current.currentYear, fromDate, toDate);
-      monthSelector.updateSource(ref.current.monthSource);
+      ref.source.setCurrent(ref.currentYear);
+      monthSelector.updateSource(ref.source.months);
     };
 
     const updateDaySource = () => {
-      ref.current.daySource = getDays(
-        ref.current.currentYear,
-        ref.current.currentMonth,
-        fromDate,
-        toDate
-      );
-      daySelector.updateSource(ref.current.daySource);
+      ref.source.setCurrent(ref.currentYear, ref.currentMonth);
+      daySelector.updateSource(ref.source.days);
     };
 
     const yearSelector = new IosStylePicker(yearPickerRef.current!, {
       variant: infinite ? 'infinite' : 'normal',
-      source: ref.current.yearSource,
+      source: ref.source.years,
       onChange: selected => {
-        const changed = ref.current.currentYear !== selected.value;
-        ref.current.currentYear = selected.value;
+        const changed = ref.currentYear !== selected.value;
+        ref.currentYear = selected.value;
 
         if (changed) {
           updateMonthSource();
@@ -107,10 +134,10 @@ function DatePicker({
 
     const monthSelector = new IosStylePicker(monthPickerRef.current!, {
       variant: infinite ? 'infinite' : 'normal',
-      source: ref.current.monthSource,
+      source: ref.source.months,
       onChange: selected => {
-        const changed = ref.current.currentMonth !== selected.value;
-        ref.current.currentMonth = selected.value;
+        const changed = ref.currentMonth !== selected.value;
+        ref.currentMonth = selected.value;
 
         if (changed) {
           updateDaySource();
@@ -121,10 +148,10 @@ function DatePicker({
 
     const daySelector = new IosStylePicker(dayPickerRef.current!, {
       variant: infinite ? 'infinite' : 'normal',
-      source: ref.current.daySource,
+      source: ref.source.days,
       onChange: selected => {
-        const changed = ref.current.currentDay !== selected.value;
-        ref.current.currentDay = selected.value;
+        const changed = ref.currentDay !== selected.value;
+        ref.currentDay = selected.value;
 
         if (changed) {
           onChange();
@@ -137,10 +164,9 @@ function DatePicker({
       const initMonth = initDate.getMonth() + 1;
       const initDay = initDate.getDate();
 
-      ref.current.monthSource = getMonths(initYear, fromDate);
-      monthSelector.updateSource(ref.current.monthSource);
-      ref.current.daySource = getDays(initYear, initMonth, fromDate);
-      daySelector.updateSource(ref.current.daySource);
+      ref.source.setCurrent(initYear, initMonth);
+      monthSelector.updateSource(ref.source.months);
+      daySelector.updateSource(ref.source.days);
 
       yearSelector.select(initYear);
       monthSelector.select(initMonth);
