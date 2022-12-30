@@ -1,6 +1,7 @@
 # iOS Style Picker
 
-![sample](docs/sample.jpeg)
+![sample](docs/sample1.png)
+![sample](docs/sample2.png)
 
 [Demo](https://ricale.kr/ios-style-picker)
 
