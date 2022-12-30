@@ -12,6 +12,8 @@ $ yarn add ios-style-picker
 
 ## 2. Usage
 
+### 2.1. Default
+
 ```tsx
 import { DatePicker } from 'ios-style-picker';
 import 'ios-style-picker/dist/style.css';
@@ -34,7 +36,44 @@ function SomeComp(/* ... */) {
 }
 ```
 
-### 2.1. Props
+### 2.2. Formatting Values of Pickers
+
+```tsx
+import { DatePicker } from 'ios-style-picker';
+import 'ios-style-picker/dist/style.css';
+import en from 'ios-style-picker/formatters/en';
+// import ko from 'ios-style-picker/formatters/ko';
+// import ja from 'ios-style-picker/formatters/ja';
+// import zh from 'ios-style-picker/formatters/zh';
+
+function SomeComp(/* ... */) {
+  // ...
+  return (
+    <div>
+      {/* ... */}
+      <DatePicker
+        onChange={(y, m, d) => {
+          console.log(y, m, d);
+        }}
+        formatters={en}
+      />
+      {/* ... */}
+      <DatePicker
+        onChange={(y, m, d) => {
+          console.log(y, m, d);
+        }}
+        formatters={{
+          year: value => `${value}년`,
+          month: value => `${value}월`,
+          day: value => `${value}일`,
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### 3. Props
 
 ```ts
 export type DatePickerProps = {
@@ -47,7 +86,7 @@ export type DatePickerProps = {
 };
 ```
 
-### 2.2. Class Names
+### 4. Class Names
 
 ```
 div.ios-style-date-picker
@@ -60,6 +99,6 @@ div.ios-style-date-picker
           li.ios-style-picker__highlight-item
 ```
 
-## 3. Reference
+## 5. Reference
 
 It's forked from [this gist](https://gist.github.com/wjpeters/876a8fe4040a2bb4b4eb28d2270620a5)
